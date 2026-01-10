@@ -9,7 +9,7 @@ Interactive labs designed to visualize the behaviour of various Machine Learning
 A fast, interactive tool to visualize how different gradient descent algorithms navigate complex loss surfaces in real time.
 
 ### Features
--  Explore optimizers: **SGD**, **Momentum**, **Adagrad**, **RMSProp**, **Adam**
+-  Explore optimizers: **Vanilla SGD**, **Momentum**, **Adagrad**, **RMSProp**, **Adam**
 -  Real-time 3D visualizations using **Plotly**
 -  Input custom loss surfaces using different functions
 -  Adjust hyperparameters: learning rate, momentum, decay, beta values
