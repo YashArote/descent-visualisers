@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Research Labs | Yash Arote</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            dark: '#050a14',
+                            card: 'rgba(15, 23, 42, 0.6)',
+                            border: 'rgba(56, 189, 248, 0.2)',
+                            accent: '#00f2ff',
+                            secondary: '#bd00ff'
+                        }
+                    },
+                    backgroundImage: {
+                        'grid-pattern': 'linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            background: #050a14;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+
+        #vanta-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            opacity: 0.3;
+        }
+
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-size: 50px 50px;
+            background-image: var(--tw-bg-grid-pattern);
+            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .demo-card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Ensure video container handles clicks properly */
+        .video-container {
+            cursor: pointer;
+        }
+
+        /* Modal Transitions */
+        #video-modal {
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        #video-modal.hidden {
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        #video-modal:not(.hidden) {
+            pointer-events: auto;
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-cyber-dark text-slate-300 font-sans antialiased min-h-screen flex flex-col justify-between relative overflow-x-hidden">
+
+    <div id="vanta-bg"></div>
+    <div class="grid-overlay"></div>
+
+    <div id="video-modal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md hidden opacity-0">
+        <button onclick="closeModal()"
+            class="absolute top-6 right-6 text-white hover:text-cyber-accent transition-colors z-50">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+
+        <div class="w-full max-w-7xl px-4 relative">
+            <video id="modal-video" controls
+                class="w-full h-auto max-h-[90vh] rounded-lg border border-cyber-border shadow-[0_0_50px_rgba(0,242,255,0.2)] bg-black">
+            </video>
+        </div>
+    </div>
+
+    <header
+        class="w-full py-4 px-6 flex justify-between items-center z-50 backdrop-blur-sm border-b border-cyber-border/30 fixed top-0 left-0 bg-cyber-dark/50">
+        <div class="flex items-center gap-3"></div>
+        <a href="https://github.com/YashArote/descent-visualisers" target="_blank"
+            class="group flex items-center gap-3 px-4 py-1.5 bg-cyber-card border border-cyber-border rounded-full hover:bg-cyber-accent/10 hover:border-cyber-accent transition-all duration-300">
+            <span class="text-sm font-medium text-slate-200 group-hover:text-cyber-accent">Github</span>
+            <svg class="h-4 w-4 fill-slate-300 group-hover:fill-cyber-accent transition-colors"
+                xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+            </svg>
+        </a>
+    </header>
+
+    <main class="flex-grow container mx-auto px-6 pt-24 pb-12 relative z-10">
+        <section class="text-center py-12 min-h-[40vh] flex flex-col justify-center">
+            <h1
+                class="text-6xl md:text-8xl font-extrabold tracking-tight mb-4 text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-cyber-accent to-slate-100">
+                Descent<br>Visualisers.
+            </h1>
+            <p class="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto leading-relaxed">
+                Interactive labs designed to visualize the behaviour of various Machine Learning algorithms.
+            </p>
+            <div class="mt-8 animate-bounce text-cyber-accent opacity-50">
+                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                </svg>
+            </div>
+        </section>
+
+        <div class="relative flex py-10 items-center">
+            <div class="flex-grow border-t border-cyber-accent/20"></div>
+
+        </div>
+
+        <section id="station-gradient" class="py-10 relative">
+            <div
+                class="absolute -top-20 left-1/2 -translate-x-1/2 w-96 h-96 bg-cyber-accent/10 rounded-full blur-[128px] -z-10">
+            </div>
+            <div class="w-full max-w-4xl mx-auto text-center mb-10">
+                <h2 class="text-4xl font-bold text-white mb-4">Gradient Descent Visualiser</h2>
+                <p class="text-slate-400 text-lg leading-relaxed mb-6">
+                    A fast, interactive tool to visualize how different gradient descent algorithms navigate complex
+                    loss surfaces in real time.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div
+                    class="demo-card group bg-cyber-card backdrop-blur-md border border-cyber-border p-1 rounded-2xl overflow-hidden hover:border-cyber-accent transition-all duration-500 hover:shadow-[0_0_30px_rgba(0,242,255,0.15)] relative">
+                    <div class="video-container relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden">
+                        <video data-src="GD-visualizer/demos/dem_1.mp4" loop muted playsinline
+                            class="lazy-video w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700">
+                        </video>
+                        <button onclick="openModal('GD-visualizer/demos/dem_1.mp4')"
+                            class="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-cyber-accent text-white hover:text-black rounded-md backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 z-20">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4">
+                                </path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-sm text-slate-400 mb-4 h-10">Exploring standard optimization terrains: Saddle
+                            Points, Bowls, and Plateaus.</p>
+                        <a href="/GD-visualizer/index.html"
+                            class="block w-full text-center py-2 text-sm font-mono text-cyber-accent border border-cyber-accent/30 hover:bg-cyber-accent/10 rounded transition-colors">Vizit
+                            now</a>
+                    </div>
+                </div>
+
+                <div
+                    class="demo-card group bg-cyber-card backdrop-blur-md border border-cyber-border p-1 rounded-2xl overflow-hidden hover:border-cyber-accent transition-all duration-500 hover:shadow-[0_0_30px_rgba(0,242,255,0.15)] relative">
+                    <div class="video-container relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden">
+                        <video data-src="GD-visualizer/demos/dem_2.mp4" loop muted playsinline
+                            class="lazy-video w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700">
+                        </video>
+                        <button onclick="openModal('GD-visualizer/demos/dem_2.mp4')"
+                            class="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-cyber-accent text-white hover:text-black rounded-md backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 z-20">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4">
+                                </path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-sm text-slate-400 mb-4 h-10">Real-time visualization of convergence paths
+                            initiated from user-defined starting coordinates.</p>
+                        <a href="GD-visualizer/index.html"
+                            class="block w-full text-center py-2 text-sm font-mono text-cyber-accent border border-cyber-accent/30 hover:bg-cyber-accent/10 rounded transition-colors">Vizit
+                            now</a>
+                    </div>
+                </div>
+
+                <div
+                    class="demo-card group bg-cyber-card backdrop-blur-md border border-cyber-border p-1 rounded-2xl overflow-hidden hover:border-cyber-accent transition-all duration-500 hover:shadow-[0_0_30px_rgba(0,242,255,0.15)] relative">
+                    <div class="video-container relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden">
+                        <video data-src="GD-visualizer/demos/dem_3.mp4" loop muted playsinline
+                            class="lazy-video w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700">
+                        </video>
+                        <button onclick="openModal('GD-visualizer/demos/dem_3.mp4')"
+                            class="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-cyber-accent text-white hover:text-black rounded-md backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 z-20">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4">
+                                </path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-sm text-slate-400 mb-4 h-10">Rendering custom 3D loss surfaces generated
+                            instantly via mathematical function input.</p>
+                        <a href="GD-visualizer/index.html"
+                            class="block w-full text-center py-2 text-sm font-mono text-cyber-accent border border-cyber-accent/30 hover:bg-cyber-accent/10 rounded transition-colors">Vizit
+                            now</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="relative flex py-10 items-center">
+            <div class="flex-grow border-t border-cyber-accent/20"></div>
+
+        </div>
+
+        <section id="station-rl" class="py-10 relative">
+            <div
+                class="absolute -top-20 left-1/2 -translate-x-1/2 w-96 h-96 bg-cyber-secondary/10 rounded-full blur-[128px] -z-10">
+            </div>
+            <div class="w-full max-w-4xl mx-auto text-center mb-10">
+                <h2 class="text-4xl font-bold text-white mb-4">RL visualiser</h2>
+                <p class="text-slate-400 text-lg leading-relaxed mb-6">
+                    Exploring how various Reinforcement learning algorithms like QL, DQL and PPO learn and act upon
+                    custom simulated environments.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div
+                    class="demo-card group bg-cyber-card backdrop-blur-md border border-cyber-border p-1 rounded-2xl overflow-hidden hover:border-cyber-secondary transition-all duration-500 hover:shadow-[0_0_30px_rgba(189,0,255,0.15)] relative">
+                    <div class="video-container relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden">
+                        <video data-src="RL-visualizer/demos/demo_1.mp4" loop muted playsinline
+                            class="lazy-video w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700">
+                        </video>
+                        <button onclick="openModal('RL-visualizer/demos/demo_1.mp4')"
+                            class="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-cyber-secondary text-white hover:text-black rounded-md backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 z-20">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4">
+                                </path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-slate-400 mb-4 text-sm">Visualizing tabular Q-Learning in a grid world. Watch as
+                            an autonomous agent explores the maze.</p>
+                        <a href="RL-visualizer/index.html?env=Maze"
+                            class="block w-full text-center py-3 text-sm font-mono text-cyber-secondary border border-cyber-secondary/30 hover:bg-cyber-secondary/10 rounded transition-colors">Vizit
+                            now</a>
+                    </div>
+                </div>
+
+                <div
+                    class="demo-card group bg-cyber-card backdrop-blur-md border border-cyber-border p-1 rounded-2xl overflow-hidden hover:border-cyber-secondary transition-all duration-500 hover:shadow-[0_0_30px_rgba(189,0,255,0.15)] relative">
+                    <div class="video-container relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden">
+                        <video data-src="RL-visualizer/demos/demo_2.mp4" loop muted playsinline
+                            class="lazy-video w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700">
+                        </video>
+                        <button onclick="openModal('RL-visualizer/demos/demo_2.mp4')"
+                            class="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-cyber-secondary text-white hover:text-black rounded-md backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 z-20">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4">
+                                </path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-slate-400 mb-4 text-sm">Visualizing agents mastering the CartPole physics
+                            challenge.</p>
+                        <a href="RL-visualizer/index.html?env=CartPole"
+                            class="block w-full text-center py-3 text-sm font-mono text-cyber-secondary border border-cyber-secondary/30 hover:bg-cyber-secondary/10 rounded transition-colors">Vizit
+                            now</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="w-full py-6 text-center relative z-10 border-t border-cyber-border/30 backdrop-blur-sm">
+        <p class="text-slate-500 font-mono text-xs">
+            /// Created with <span class="text-cyber-secondary animate-pulse">♥</span> by <span
+                class="text-slate-300 font-semibold">Yash Arote</span> ///
+        </p>
+    </footer>
+
+    <script>
+        // 1. VANTA BACKGROUND
+        VANTA.NET({
+            el: "#vanta-bg",
+            mouseControls: true, touchControls: true, gyroControls: false,
+            minHeight: 200.00, minWidth: 200.00, scale: 1.00, scaleMobile: 1.00,
+            color: 0x00f2ff, backgroundColor: 0x050a14,
+            points: 11.00, maxDistance: 22.00, spacing: 16.00
+        });
+
+        // 2. VIDEO MODAL LOGIC
+        const modal = document.getElementById('video-modal');
+        const modalVideo = document.getElementById('modal-video');
+
+        function openModal(src) {
+            modalVideo.src = src;
+            modal.classList.remove('hidden');
+            void modal.offsetWidth; // Force layout recalc
+            modal.classList.add('opacity-100');
+            modalVideo.play();
+        }
+
+        function closeModal() {
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modalVideo.pause();
+                modalVideo.src = "";
+            }, 300);
+        }
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // 3. LAZY LOADING & INTERACTION CONTROLLER
+        document.addEventListener("DOMContentLoaded", function () {
+            const lazyVideos = document.querySelectorAll("video.lazy-video");
+
+            // Safe play function to prevent promise errors
+            const safePlay = (video) => {
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        // Auto-play was prevented (usually by user navigation), silent fail is ok
+                    });
+                }
+            };
+
+            const setupVideoInteraction = (video) => {
+                const isTouchDevice = window.matchMedia("(pointer: coarse)").matches || !window.matchMedia("(hover: hover)").matches;
+
+                if (isTouchDevice) {
+                    // MOBILE: Click video to toggle play/pause
+                    video.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent bubbling if needed
+                        if (video.paused) {
+                            safePlay(video);
+                        } else {
+                            video.pause();
+                        }
+                    });
+                } else {
+                    // DESKTOP: Hover to play, leave to pause & reset
+                    video.parentElement.addEventListener('mouseenter', () => {
+                        safePlay(video);
+                    });
+
+                    video.parentElement.addEventListener('mouseleave', () => {
+                        video.pause();
+                        video.currentTime = 0; // Reset to start for a clean "preview" feel
+                    });
+                }
+            };
+
+            if ("IntersectionObserver" in window) {
+                const videoObserver = new IntersectionObserver(function (entries, observer) {
+                    entries.forEach(function (video) {
+                        if (video.isIntersecting) {
+                            // Load source
+                            for (const source in video.target.children) {
+                                const videoSource = video.target.children[source];
+                                if (typeof videoSource.tagName === "string" && videoSource.tagName === "SOURCE") {
+                                    videoSource.src = videoSource.dataset.src;
+                                }
+                            }
+                            video.target.src = video.target.dataset.src;
+                            video.target.load();
+                            video.target.classList.remove("lazy-video");
+
+                            // Initialize hover/click logic once loaded
+                            setupVideoInteraction(video.target);
+
+                            observer.unobserve(video.target);
+                        }
+                    });
+                });
+
+                lazyVideos.forEach(function (video) {
+                    videoObserver.observe(video);
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>RL Labs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js" async></script>
+</head>
+
+<body class="bg-slate-900 text-slate-100 flex h-screen">
+    <aside class="w-72 bg-slate-800 p-6 flex flex-col border-r border-slate-700">
+        <h1 class="text-2xl font-bold tracking-tight text-slate-100 uppercase">
+            RL <span
+                class="bg-gradient-to-r from-emerald-400 to-emerald-400 bg-clip-text text-transparent font-extrabold">Visualizer</span>
+        </h1>
+        <div class="space-y-4 mb-6"></div>
+        <label class="text-xs uppercase text-slate-500 font-bold mb-2">Algorithm</label>
+        <select id="algoSelect"
+            class="bg-slate-700 p-2 rounded mb-6 outline-none border border-slate-600 focus:border-emerald-500">
+            <option value="QL">Q-Learning</option>
+            <option value="DQL">DQL</option>
+            <option value="PPO">PPO</option>
+        </select>
+
+        <div id="hyperContainer" class="space-y-4 mb-6"></div>
+
+        <details class="mb-6">
+            <summary class="text-xs font-bold text-slate-500 uppercase cursor-pointer">Reward Shaping</summary>
+            <div id="rewardContainer" class="pt-4 space-y-4"></div>
+        </details>
+
+        <div class="mt-auto space-y-2">
+            <div class="flex gap-2 text-xs mb-2">
+                <input type="number" id="trainEpisodes" value="100" class="w-1/2 bg-slate-700 p-1 rounded">
+                <span class="py-1">Episodes</span>
+            </div>
+            <div class="flex gap-2 text-xs mb-2">
+                <input type="number" id="trainSteps" value="200" class="w-1/2 bg-slate-700 p-1 rounded">
+                <span class="py-1">Steps</span>
+            </div>
+            <button id="btnTrain"
+                class="w-full bg-emerald-600 hover:bg-emerald-500 py-2 rounded font-bold transition-all">START
+                TRAINING</button>
+            <div class="flex flex-col gap-2 mb-4">
+                <label class="text-xs font-bold text-slate-500 uppercase">Training Visualization</label>
+
+                <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer mb-1">
+                    <input type="checkbox" id="enableVisToggle" class="accent-emerald-500">
+                    Enable Visualization
+                </label>
+
+                <div id="speedControlContainer"
+                    class="flex items-center gap-4 bg-slate-700/50 p-2 rounded border border-slate-600 transition-all duration-300 opacity-50 pointer-events-none">
+                    <label class="flex items-center gap-1 text-xs cursor-pointer">
+                        <input type="radio" name="trainSpeed" value="none" checked disabled
+                            class="accent-emerald-500 speed-radio">
+                        Fast
+                    </label>
+                    <label class="flex items-center gap-1 text-xs cursor-pointer">
+                        <input type="radio" name="trainSpeed" value="slow" disabled
+                            class="accent-emerald-500 speed-radio">
+                        Slow
+                    </label>
+                </div>
+            </div>
+            <button id="btnInterrupt"
+                class="w-full bg-red-600/20 text-red-400 py-1 rounded hidden text-xs">Interrupt</button>
+            <div class="grid grid-cols-2 gap-2">
+                <button id="btnPlay" class="bg-slate-700 py-2 rounded text-sm">Play</button>
+                <button id="btnReset" class="bg-slate-700 py-2 rounded text-sm">Reset</button>
+            </div>
+            <button id="btnRandom"
+                class="w-full bg-blue-600/20 text-blue-400 py-1 rounded text-xs border border-blue-500/20">Randomize
+                Maze</button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col items-center justify-center relative">
+        <select id="envSelect" autocomplete="off"
+            class="absolute top-6 bg-slate-800 px-4 py-2 rounded-full border border-slate-700 outline-none">
+            <option value="Maze" selected>Maze</option>
+            <option value="CartPole">CartPole</option>
+        </select>
+
+        <div id="progressBox"
+            class="absolute top-20 w-64 bg-slate-800 rounded-full h-2 hidden overflow-hidden border border-slate-700">
+            <div id="progressBar" class="bg-emerald-500 h-full w-0 transition-all"></div>
+        </div>
+        <div id="progressHint" class="hidden absolute top-[92px] w-64 text-center">
+            <p class="text-[10px] text-slate-500 font-medium italic tracking-tight">
+                It's fine to interrupt—the model progress is preserved but it overrides previous model
+            </p>
+        </div>
+        <div id="game-container" class="rounded-xl overflow-hidden shadow-2xl"></div>
+    </main>
+
+    <aside class="w-72 bg-slate-800 p-6 flex flex-col border-l border-slate-700 gap-6 overflow-y-auto">
+        <h2 class="text-xs font-bold text-slate-500 uppercase tracking-widest">Environment Config</h2>
+
+        <div id="envFieldsContainer" class="space-y-6">
+        </div>
+        <div class="border-t border-slate-700 pt-6 mt-2">
+            <button onclick="toggleMathPanel()"
+                class="w-full flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors">
+                <span>Theory & Formulas</span>
+                <span id="math-arrow" class="transition-transform duration-200">▼</span>
+            </button>
+
+            <div id="math-panel" class="hidden mt-4 space-y-6">
+                <div class="bg-slate-900/50 p-3 rounded border border-slate-700/50">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="h-3 w-1 bg-emerald-500 rounded-full"></div>
+                        <h3 class="text-[10px] font-bold text-slate-300 uppercase">Q-Learning</h3>
+                    </div>
+                    <div class="text-[11px] font-mono text-emerald-400 bg-black/20 p-2 rounded">
+                        $$Q(s, a) \leftarrow Q + \alpha[TD_{error}]$$
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/50 p-3 rounded border border-slate-700/50">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="h-3 w-1 bg-blue-500 rounded-full"></div>
+                        <h3 class="text-[10px] font-bold text-slate-300 uppercase">DQN Loss</h3>
+                    </div>
+                    <div class="text-[11px] font-mono text-blue-400 bg-black/20 p-2 rounded">
+                        $$L = \mathbb{E}[(y - Q(s,a;\theta))^2]$$
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+
+    </aside>
+    <script type="module" src="./js/main.js"></script>
+</body>
+
+</html>

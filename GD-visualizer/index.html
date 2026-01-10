@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>3D Loss Surface Visualization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
+
+    <style>
+        /* 1. Custom Scrollbar to match RL Visualizer */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* 2. Range Input Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #10b981;
+            margin-top: -5px;
+            cursor: pointer;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: #334155;
+            border-radius: 2px;
+        }
+
+        /* 3. CSS-only Tooltip Logic (Replaces Bootstrap JS) */
+        .tooltip-trigger:hover+.tooltip-content {
+            display: block;
+        }
+
+        /* 4. COMPATIBILITY FIX: Support for 'show' class from setup.js */
+        #pauseAlert {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        #pauseAlert.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-200 h-screen flex flex-col overflow-hidden font-sans">
+
+    <header class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center shadow-md z-20">
+        <div class="flex items-center gap-3">
+
+            <h1 class="text-xl font-bold tracking-wide text-slate-100">
+                GRADIENT DESCENT <span class="text-slate-500 font-light">VISUALIZER</span>
+            </h1>
+        </div>
+
+        <div class="relative group">
+            <button
+                class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:border-emerald-500 transition-colors flex items-center justify-center font-serif italic tooltip-trigger">
+                i
+            </button>
+            <div
+                class="tooltip-content hidden absolute right-0 top-10 w-80 bg-slate-800 border border-slate-700 p-4 rounded-xl shadow-2xl z-50 text-xs text-slate-300 leading-relaxed">
+                <strong class="text-emerald-400 block mb-2 uppercase tracking-wider">Instructions</strong>
+                <ol class="list-decimal pl-4 space-y-1">
+                    <li>Enter a loss function using <code>math.js</code> syntax.</li>
+                    <li>Example: <code class="text-yellow-400">sin(w) + cos(b)^2</code></li>
+                    <li>Click anywhere on the 3D surface to place the starting point.</li>
+                </ol>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+
+        <aside
+            class="w-80 bg-slate-900 border-r border-slate-800 flex flex-col overflow-y-auto p-5 gap-6 shadow-2xl z-10">
+
+            <div class="space-y-4">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2">
+                    Surface Config</h3>
+
+                <div>
+                    <label for="userFunction" class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Loss
+                        Function (w, b)</label>
+                    <input type="text" id="userFunction"
+                        class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-xs font-mono text-emerald-400 focus:outline-none focus:border-emerald-500 transition-colors"
+                        value="pow(w*w + b - 11, 2) + pow(w + b*b - 7, 2)">
+                </div>
+
+                <div>
+                    <label for="surfaceSelect" class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Preset
+                        Surfaces</label>
+                    <select id="surfaceSelect"
+                        class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 text-slate-300">
+                        <option value="default" selected>-- Custom --</option>
+                        <option value="global">Global Minimum</option>
+                        <option value="local">Local Minimum</option>
+                        <option value="elliptical">Elliptical Bowl</option>
+                        <option value="saddle">Saddle Point</option>
+                        <option value="hills">Hills</option>
+                        <option value="plateau">Plateau</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label for="weightRange" class="block text-[10px] uppercase font-bold text-slate-400 mb-1">W
+                            Range</label>
+                        <input type="text" id="weightRange" value="-5,5"
+                            class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-center">
+                    </div>
+                    <div>
+                        <label for="biasRange" class="block text-[10px] uppercase font-bold text-slate-400 mb-1">B
+                            Range</label>
+                        <input type="text" id="biasRange" value="-5,5"
+                            class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-center">
+                    </div>
+                </div>
+
+                <button onclick="plotSurface()"
+                    class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase py-2 rounded shadow-lg transition-all active:scale-95">
+                    Render Surface
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2">
+                    Optimizer Config</h3>
+
+                <div>
+                    <label for="optimizerSelect"
+                        class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Algorithm</label>
+                    <select id="optimizerSelect"
+                        class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs focus:outline-none focus:border-blue-500 text-slate-300">
+                        <option value="gradientDescent">Vanilla</option>
+                        <option value="momentum">Momentum</option>
+                        <option value="adagrad">Adagrad</option>
+                        <option value="rmsprop">RMSprop</option>
+                        <option value="adam">Adam</option>
+                    </select>
+                </div>
+
+                <div id="learningRateField">
+                    <label for="learningRate" class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Learning
+                        Rate (α)</label>
+                    <input type="number" id="learningRate" value="0.01" step="0.001"
+                        class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs">
+                </div>
+
+                <div id="momentumField" style="display: none;">
+                    <label for="momentum" class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Momentum
+                        (β)</label>
+                    <input type="number" id="momentum" value="0.9" step="0.01"
+                        class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs">
+                </div>
+
+                <div id="decayRateField" style="display: none;">
+                    <label for="decayRate" class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Decay Rate
+                        (γ)</label>
+                    <input type="number" id="decayRate" value="0.01" step="0.001"
+                        class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs">
+                </div>
+
+                <div id="beta1Field" style="display: none;">
+                    <label for="beta1" class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Beta 1
+                        (β₁)</label>
+                    <input type="number" id="beta1" value="0.9" step="0.01"
+                        class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs">
+                </div>
+
+                <div id="beta2Field" style="display: none;">
+                    <label for="beta2" class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Beta 2
+                        (β₂)</label>
+                    <input type="number" id="beta2" value="0.999" step="0.01"
+                        class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs">
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2">
+                    Visuals</h3>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label for="markerSize" class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Marker
+                            Px</label>
+                        <input type="number" id="markerSize" min="1" max="50" value="8"
+                            class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-center">
+                    </div>
+                    <div>
+                        <label for="speedSelect"
+                            class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Speed</label>
+                        <select id="speedSelect"
+                            class="w-full bg-slate-800 border border-slate-700 rounded px-1 py-1 text-xs text-slate-300">
+                            <option value="200">Slow</option>
+                            <option value="100" selected>Normal</option>
+                            <option value="40">Fast</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+        <main class="flex-1 relative bg-slate-950 flex flex-col">
+
+            <div id="plot" class="w-full h-full"></div>
+
+            <div
+                class="absolute bottom-6 left-8 bg-slate-900/90 backdrop-blur border border-slate-700 p-2 rounded-full flex gap-2 shadow-2xl z-10 transition-all duration-300">
+                <button onclick="startAnimation()"
+                    class="w-10 h-10 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center transition-transform hover:scale-110 shadow-lg shadow-emerald-900/20"
+                    title="Start">
+                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                    </svg>
+                </button>
+                <button onclick="pauseAnimation()"
+                    class="w-10 h-10 rounded-full bg-yellow-600 hover:bg-yellow-500 text-white flex items-center justify-center transition-transform hover:scale-110 shadow-lg shadow-yellow-900/20"
+                    title="Pause">
+                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                    </svg>
+                </button>
+                <button onclick="resetAnimation()"
+                    class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center transition-transform hover:scale-110 shadow-lg shadow-red-900/20"
+                    title="Reset">
+                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <path
+                            d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+                    </svg>
+                </button>
+            </div>
+
+            <div id="pauseAlert"
+                class="absolute top-4 right-4 bg-black border border-white/50 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg backdrop-blur">
+                ⚠️ Please pause the animation first.
+            </div>
+
+        </main>
+    </div>
+
+    <script src="setup.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>
